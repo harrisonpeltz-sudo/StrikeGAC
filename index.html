@@ -1,243 +1,554 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>StrikeGAC</title>
 </head>
+
 <body>
 
-<h1>StrikeGAC</h1>
+  <h1>StrikeGAC</h1>
 
-<hr>
+  <hr>
 
-<div id="standingsDisplay">Loading standings...</div>
+  <div id="standingsDisplay">Loading standings...</div>
 
-<hr>
+  <div id="lastUpdated" style="margin-top: 6px; font-size: 12px; color: gray;"></div>
 
-<div id="teamDisplay">Click a team in the standings.</div>
+  <button onclick="showLeagueTable()">Show Full League Table</button>
 
-<script>
-const teams = {
-  "Gib": [
-    { name: "Austin Wells", position: "C", id: 669224 },
-    { name: "Vladimir Guerrero Jr", position: "1B", id: 665489 },
-    { name: "Jazz Chisholm Jr", position: "2B", id: 665862 },
-    { name: "Ryan McMahon", position: "3B", id: 641857 },
-    { name: "Elly De La Cruz", position: "SS", id: 682829 },
-    { name: "Cody Bellinger", position: "LF", id: 641355 },
-    { name: "Jackson Chourio", position: "CF", id: 694192 },
-    { name: "Ronald Acuna Jr", position: "RF", id: 660670 },
-    { name: "Shohei Ohtani", position: "DH", id: 660271 }
-  ],
-  "zuck": [
-    { name: "Cal Raleigh", position: "C", id: 663728 },
-    { name: "Tyler Soderstrom", position: "1B", id: 691016 },
-    { name: "Ketel Marte", position: "2B", id: 606466 },
-    { name: "Munetaka Murakami", position: "3B", id: null },
-    { name: "Gunnar Henderson", position: "SS", id: 683002 },
-    { name: "Roman Anthony", position: "LF", id: null },
-    { name: "Byron Buxton", position: "CF", id: 621439 },
-    { name: "Jac Caglianone", position: "RF", id: null },
-    { name: "Bryan Reynolds", position: "DH", id: 668804 }
-  ],
-  "krev": [
-    { name: "Ben Rice", position: "C", id: 700250 },
-    { name: "Freddie Freeman", position: "1B", id: 518692 },
-    { name: "Brett Baty", position: "2B", id: 683146 },
-    { name: "Jose Ramirez", position: "3B", id: 608070 },
-    { name: "Willy Adames", position: "SS", id: 642715 },
-    { name: "Taylor Ward", position: "LF", id: 621493 },
-    { name: "Trent Grisham", position: "CF", id: 663757 },
-    { name: "Aaron Judge", position: "RF", id: 592450 },
-    { name: "Kerry Carpenter", position: "DH", id: 681481 }
-  ],
-  "caleb": [
-    { name: "Samuel Basallo", position: "C", id: null },
-    { name: "Matt Olson", position: "1B", id: 621566 },
-    { name: "Ozzie Albies", position: "2B", id: 645277 },
-    { name: "Kazuma Okamoto", position: "3B", id: null },
-    { name: "Zach Neto", position: "SS", id: 687263 },
-    { name: "Randy Arozarena", position: "LF", id: 668227 },
-    { name: "Julio Rodriguez", position: "CF", id: 677594 },
-    { name: "Kyle Tucker", position: "RF", id: 663656 },
-    { name: "Kyle Schwarber", position: "DH", id: 656941 }
-  ],
-  "har": [
-    { name: "Agustin Ramirez", position: "C", id: null },
-    { name: "Bryce Harper", position: "1B", id: 547180 },
-    { name: "Matt McLain", position: "2B", id: 680574 },
-    { name: "Matt Chapman", position: "3B", id: 656305 },
-    { name: "Bobby Witt Jr", position: "SS", id: 677951 },
-    { name: "James Wood", position: "LF", id: 695578 },
-    { name: "Pete Crow-Armstrong", position: "CF", id: 691718 },
-    { name: "Juan Soto", position: "RF", id: 665742 },
-    { name: "Giancarlo Stanton", position: "DH", id: 519317 }
-  ],
-  "AI": [
-    { name: "Drake Baldwin", position: "C", id: null },
-    { name: "Nick Kurtz", position: "1B", id: null },
-    { name: "Jose Altuve", position: "2B", id: 514888 },
-    { name: "Austin Riley", position: "3B", id: 663586 },
-    { name: "Francisco Lindor", position: "SS", id: 596019 },
-    { name: "Heliot Ramos", position: "LF", id: 671218 },
-    { name: "Andy Pages", position: "CF", id: 681624 },
-    { name: "Mike Trout", position: "RF", id: 545361 },
-    { name: "Rafael Devers", position: "DH", id: 646240 }
-  ],
-  "hend": [
-    { name: "Hunter Goodman", position: "C", id: 696100 },
-    { name: "Michael Busch", position: "1B", id: 683737 },
-    { name: "Nolan Gorman", position: "2B", id: 669357 },
-    { name: "Eugenio Suarez", position: "3B", id: 553993 },
-    { name: "Dansby Swanson", position: "SS", id: 621020 },
-    { name: "Kyle Stowers", position: "LF", id: 669065 },
-    { name: "Michael Harris II", position: "CF", id: 671739 },
-    { name: "Corbin Carroll", position: "RF", id: 682998 },
-    { name: "Seiya Suzuki", position: "DH", id: 673548 }
-  ],
-  "ston": [
-    { name: "Salvador Perez", position: "C", id: 521692 },
-    { name: "Christian Walker", position: "1B", id: 572233 },
-    { name: "Brandon Lowe", position: "2B", id: 664040 },
-    { name: "Junior Caminero", position: "3B", id: 691406 },
-    { name: "Trea Turner", position: "SS", id: 607208 },
-    { name: "Wyatt Langford", position: "LF", id: 694671 },
-    { name: "Daulton Varsho", position: "CF", id: 662139 },
-    { name: "Brent Rooker", position: "RF", id: 667670 },
-    { name: "Christian Yelich", position: "DH", id: 592885 }
-  ],
-  "d": [
-    { name: "Francisco Alvarez", position: "C", id: 682626 },
-    { name: "Vinnie Pasquantino", position: "1B", id: 686469 },
-    { name: "Jorge Polanco", position: "2B", id: 593871 },
-    { name: "Manny Machado", position: "3B", id: 592518 },
-    { name: "Mookie Betts", position: "SS", id: 605141 },
-    { name: "Riley Greene", position: "LF", id: 682985 },
-    { name: "Jo Adell", position: "CF", id: 666176 },
-    { name: "Teoscar Hernandez", position: "RF", id: 606192 },
-    { name: "George Springer", position: "DH", id: 543807 }
-  ],
-  "pat": [
-    { name: "Shea Langeliers", position: "C", id: 669127 },
-    { name: "Pete Alonso", position: "1B", id: 624413 },
-    { name: "Gleyber Torres", position: "2B", id: 650402 },
-    { name: "Alex Bregman", position: "3B", id: 608324 },
-    { name: "Corey Seager", position: "SS", id: 608369 },
-    { name: "Yordan Alvarez", position: "LF", id: 670541 },
-    { name: "Oneil Cruz", position: "CF", id: 665833 },
-    { name: "Fernando Tatis Jr", position: "RF", id: 665487 },
-    { name: "Kyle Manzardo", position: "DH", id: 700932 }
-  ]
-};
+  <hr>
 
-const idCache = {};
+  <div id="teamDisplay">Click a team in the standings.</div>
 
-async function lookupPlayerIdByName(name) {
-  if (idCache[name]) return idCache[name];
+  <div id="leagueTableDisplay"></div>
+  <script>
+    const teams = {
+      "Gib": [
+        { name: "Austin Wells", position: "C", id: 669224 },
+        { name: "Vladimir Guerrero Jr", position: "1B", id: 665489 },
+        { name: "Jazz Chisholm Jr", position: "2B", id: 665862 },
+        { name: "Ryan McMahon", position: "3B", id: 641857 },
+        { name: "Elly De La Cruz", position: "SS", id: 682829 },
+        { name: "Cody Bellinger", position: "LF", id: 641355 },
+        { name: "Jackson Chourio", position: "CF", id: 694192 },
+        { name: "Ronald Acuna Jr", position: "RF", id: 660670 },
+        { name: "Shohei Ohtani", position: "DH", id: 660271 }
+      ],
+      "zuck": [
+        { name: "Cal Raleigh", position: "C", id: 663728 },
+        { name: "Tyler Soderstrom", position: "1B", id: 691016 },
+        { name: "Ketel Marte", position: "2B", id: 606466 },
+        { name: "Munetaka Murakami", position: "3B", id: null },
+        { name: "Gunnar Henderson", position: "SS", id: 683002 },
+        { name: "Roman Anthony", position: "LF", id: null },
+        { name: "Byron Buxton", position: "CF", id: 621439 },
+        { name: "Jac Caglianone", position: "RF", id: null },
+        { name: "Bryan Reynolds", position: "DH", id: 668804 }
+      ],
+      "krev": [
+        { name: "Ben Rice", position: "C", id: 700250 },
+        { name: "Freddie Freeman", position: "1B", id: 518692 },
+        { name: "Brett Baty", position: "2B", id: 683146 },
+        { name: "Jose Ramirez", position: "3B", id: 608070 },
+        { name: "Willy Adames", position: "SS", id: 642715 },
+        { name: "Taylor Ward", position: "LF", id: 621493 },
+        { name: "Trent Grisham", position: "CF", id: 663757 },
+        { name: "Aaron Judge", position: "RF", id: 592450 },
+        { name: "Kerry Carpenter", position: "DH", id: 681481 }
+      ],
+      "caleb": [
+        { name: "Samuel Basallo", position: "C", id: null },
+        { name: "Matt Olson", position: "1B", id: 621566 },
+        { name: "Ozzie Albies", position: "2B", id: 645277 },
+        { name: "Kazuma Okamoto", position: "3B", id: null },
+        { name: "Zach Neto", position: "SS", id: 687263 },
+        { name: "Randy Arozarena", position: "LF", id: 668227 },
+        { name: "Julio Rodriguez", position: "CF", id: 677594 },
+        { name: "Kyle Tucker", position: "RF", id: 663656 },
+        { name: "Kyle Schwarber", position: "DH", id: 656941 }
+      ],
+      "har": [
+        { name: "Agustin Ramirez", position: "C", id: null },
+        { name: "Bryce Harper", position: "1B", id: 547180 },
+        { name: "Matt McLain", position: "2B", id: 680574 },
+        { name: "Matt Chapman", position: "3B", id: 656305 },
+        { name: "Bobby Witt Jr", position: "SS", id: 677951 },
+        { name: "James Wood", position: "LF", id: 695578 },
+        { name: "Pete Crow-Armstrong", position: "CF", id: 691718 },
+        { name: "Juan Soto", position: "RF", id: 665742 },
+        { name: "Giancarlo Stanton", position: "DH", id: 519317 }
+      ],
+      "AI": [
+        { name: "Drake Baldwin", position: "C", id: null },
+        { name: "Nick Kurtz", position: "1B", id: null },
+        { name: "Jose Altuve", position: "2B", id: 514888 },
+        { name: "Austin Riley", position: "3B", id: 663586 },
+        { name: "Francisco Lindor", position: "SS", id: 596019 },
+        { name: "Heliot Ramos", position: "LF", id: 671218 },
+        { name: "Andy Pages", position: "CF", id: 681624 },
+        { name: "Mike Trout", position: "RF", id: 545361 },
+        { name: "Rafael Devers", position: "DH", id: 646240 }
+      ],
+      "hend": [
+        { name: "Hunter Goodman", position: "C", id: 696100 },
+        { name: "Michael Busch", position: "1B", id: 683737 },
+        { name: "Nolan Gorman", position: "2B", id: 669357 },
+        { name: "Eugenio Suarez", position: "3B", id: 553993 },
+        { name: "Dansby Swanson", position: "SS", id: 621020 },
+        { name: "Kyle Stowers", position: "LF", id: 669065 },
+        { name: "Michael Harris II", position: "CF", id: 671739 },
+        { name: "Corbin Carroll", position: "RF", id: 682998 },
+        { name: "Seiya Suzuki", position: "DH", id: 673548 }
+      ],
+      "ston": [
+        { name: "Salvador Perez", position: "C", id: 521692 },
+        { name: "Christian Walker", position: "1B", id: 572233 },
+        { name: "Brandon Lowe", position: "2B", id: 664040 },
+        { name: "Junior Caminero", position: "3B", id: 691406 },
+        { name: "Trea Turner", position: "SS", id: 607208 },
+        { name: "Wyatt Langford", position: "LF", id: 694671 },
+        { name: "Daulton Varsho", position: "CF", id: 662139 },
+        { name: "Brent Rooker", position: "RF", id: 667670 },
+        { name: "Christian Yelich", position: "DH", id: 592885 }
+      ],
+      "d": [
+        { name: "Francisco Alvarez", position: "C", id: 682626 },
+        { name: "Vinnie Pasquantino", position: "1B", id: 686469 },
+        { name: "Jorge Polanco", position: "2B", id: 593871 },
+        { name: "Manny Machado", position: "3B", id: 592518 },
+        { name: "Mookie Betts", position: "SS", id: 605141 },
+        { name: "Riley Greene", position: "LF", id: 682985 },
+        { name: "Jo Adell", position: "CF", id: 666176 },
+        { name: "Teoscar Hernandez", position: "RF", id: 606192 },
+        { name: "George Springer", position: "DH", id: 543807 }
+      ],
+      "pat": [
+        { name: "Shea Langeliers", position: "C", id: 669127 },
+        { name: "Pete Alonso", position: "1B", id: 624413 },
+        { name: "Gleyber Torres", position: "2B", id: 650402 },
+        { name: "Alex Bregman", position: "3B", id: 608324 },
+        { name: "Corey Seager", position: "SS", id: 608369 },
+        { name: "Yordan Alvarez", position: "LF", id: 670541 },
+        { name: "Oneil Cruz", position: "CF", id: 665833 },
+        { name: "Fernando Tatis Jr", position: "RF", id: 665487 },
+        { name: "Kyle Manzardo", position: "DH", id: 700932 }
+      ]
+    };
 
-  const url = `https://statsapi.mlb.com/api/v1/people/search?names=${encodeURIComponent(name)}`;
-  const response = await fetch(url);
-  const text = await response.text();
+    const idCache = {};
+    const conferences = {
+      cun: ["pat", "hend", "ston", "d", "zuck"],
+      fel: ["Gib", "caleb", "har", "krev", "AI"]
+    };
 
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return null;
-  }
+    async function lookupPlayerIdByName(name) {
+      if (idCache[name]) return idCache[name];
 
-  const id = data.people?.[0]?.id ?? null;
-  idCache[name] = id;
-  return id;
-}
+      const url = `https://statsapi.mlb.com/api/v1/people/search?names=${encodeURIComponent(name)}`;
+      const response = await fetch(url);
+      const text = await response.text();
 
-async function getHR(player) {
-  let playerId = player.id;
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        return null;
+      }
 
-  if (!playerId) {
-    playerId = await lookupPlayerIdByName(player.name);
-  }
+      const id = data.people?.[0]?.id ?? null;
+      idCache[name] = id;
+      return id;
+    }
 
-  if (!playerId) return null;
+    async function getHR(player) {
+      let playerId = player.id;
 
-  const url = `https://statsapi.mlb.com/api/v1/people/${playerId}/stats?stats=season&group=hitting`;
-  const response = await fetch(url);
-  const text = await response.text();
+      if (!playerId) {
+        playerId = await lookupPlayerIdByName(player.name);
+      }
 
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    return null;
-  }
+      if (!playerId) return null;
 
-  if (data.stats?.[0]?.splits?.[0]?.stat?.homeRuns !== undefined) {
-    return data.stats[0].splits[0].stat.homeRuns;
-  }
+      const url = `https://statsapi.mlb.com/api/v1/people/${playerId}/stats?stats=season&group=hitting`;
+      const response = await fetch(url);
+      const text = await response.text();
 
-  return 0;
-}
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        return null;
+      }
 
-async function showTeam(teamName) {
-  const display = document.getElementById("teamDisplay");
-  const players = teams[teamName];
+      if (data.stats?.[0]?.splits?.[0]?.stat?.homeRuns !== undefined) {
+        return data.stats[0].splits[0].stat.homeRuns;
+      }
 
-  display.innerHTML = `<h2>${teamName}</h2><p>Loading...</p>`;
+      return 0;
+    }
+    function getTodayInNewYork() {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "America/New_York",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).formatToParts(new Date());
 
-  const results = await Promise.all(
-    players.map(async (player) => {
-      const hr = await getHR(player);
-      return { ...player, hr };
-    })
-  );
+      const year = parts.find(p => p.type === "year").value;
+      const month = parts.find(p => p.type === "month").value;
+      const day = parts.find(p => p.type === "day").value;
 
-  const totalHR = results.reduce((sum, p) => sum + (typeof p.hr === "number" ? p.hr : 0), 0);
+      return `${year}-${month}-${day}`;
+    }
 
-  display.innerHTML = `
-    <h2>${teamName}</h2>
-    <p><strong>Total HR:</strong> ${totalHR}</p>
-    <ul>
-      ${results.map(p => `<li>${p.position} – ${p.name} — HR: ${p.hr === null ? "N/A" : p.hr}</li>`).join("")}
-    </ul>
-  `;
-}
-async function showStandings() {
-  const display = document.getElementById("standingsDisplay");
-  display.innerHTML = "<h2>Standings</h2><p>Loading...</p>";
+    let todayScheduleCache = null;
+    let teamMatchupCache = null;
 
-  const standings = await Promise.all(
-    Object.entries(teams).map(async ([teamName, players]) => {
+    async function getTodayScheduleMap() {
+      if (teamMatchupCache) return teamMatchupCache;
+
+      const todayNY = getTodayInNewYork();
+      const response = await fetch(
+        `https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${todayNY}`
+      );
+      const data = await response.json();
+
+      todayScheduleCache = data;
+      teamMatchupCache = {};
+
+      const games = data.dates?.[0]?.games || [];
+
+      games.forEach((game) => {
+        const homeTeam = game.teams?.home?.team;
+        const awayTeam = game.teams?.away?.team;
+        const status = game.status?.detailedState || "Scheduled";
+        const gameDateUTC = game.gameDate;
+
+        const gameTimeET = gameDateUTC
+          ? new Date(gameDateUTC).toLocaleTimeString("en-US", {
+            timeZone: "America/New_York",
+            hour: "numeric",
+            minute: "2-digit"
+          })
+          : "";
+
+        if (homeTeam?.id && awayTeam?.id) {
+          teamMatchupCache[homeTeam.id] = `vs ${awayTeam.abbreviation || awayTeam.name} — ${gameTimeET} ET (${status})`;
+          teamMatchupCache[awayTeam.id] = `@ ${homeTeam.abbreviation || homeTeam.name} — ${gameTimeET} ET (${status})`;
+        }
+      });
+
+      return teamMatchupCache;
+    }
+
+    async function getTodayInfo(player) {
+      let playerId = player.id;
+
+      if (!playerId) {
+        playerId = await lookupPlayerIdByName(player.name);
+      }
+
+      if (!playerId) {
+        return {
+          todayHR: null,
+          matchup: "N/A"
+        };
+      }
+
+      let teamId = null;
+
+      try {
+        const playerResponse = await fetch(`https://statsapi.mlb.com/api/v1/people/${playerId}?hydrate=currentTeam`); const playerData = await playerResponse.json();
+        teamId = playerData.people?.[0]?.currentTeam?.id ?? null;
+      } catch {
+        teamId = null;
+      }
+
+      let matchup = "Off";
+      let todayHR = 0;
+
+      try {
+        const matchupMap = await getTodayScheduleMap();
+        if (teamId && matchupMap[teamId]) {
+          matchup = matchupMap[teamId];
+        }
+      } catch {
+        matchup = "Off";
+      }
+
+      try {
+        const todayNY = getTodayInNewYork();
+        const statsResponse = await fetch(
+          `https://statsapi.mlb.com/api/v1/people/${playerId}/stats?stats=gameLog&group=hitting&season=2026`
+        );
+        const statsData = await statsResponse.json();
+
+        const splits = statsData.stats?.[0]?.splits || [];
+        const todaysGames = splits.filter(split => split.date === todayNY);
+
+        todayHR = todaysGames.reduce((sum, split) => {
+          return sum + (split.stat?.homeRuns || 0);
+        }, 0);
+      } catch {
+        todayHR = null;
+      }
+
+      return { todayHR, matchup };
+    }
+    async function showTeam(teamName) {
+      const display = document.getElementById("teamDisplay");
+      const players = teams[teamName];
+
+      display.innerHTML = `<h2>${teamName}</h2><p>Loading...</p>`;
+
       const results = await Promise.all(
         players.map(async (player) => {
-          const hr = await getHR(player);
-          return typeof hr === "number" ? hr : 0;
+          const seasonHR = await getHR(player);
+          const todayInfo = await getTodayInfo(player);
+
+          return {
+            ...player,
+            seasonHR,
+            todayHR: todayInfo.todayHR,
+            matchup: todayInfo.matchup
+          };
         })
       );
 
-      const totalHR = results.reduce((sum, hr) => sum + hr, 0);
+      const totalHR = results.reduce(
+        (sum, p) => sum + (typeof p.seasonHR === "number" ? p.seasonHR : 0),
+        0
+      );
 
-      return { teamName, totalHR };
-    })
-  );
-
-  standings.sort((a, b) => b.totalHR - a.totalHR);
-
-  display.innerHTML = `
-    <h2>Standings</h2>
-    <ol>
-      ${standings.map(team => `
-        <li>
-          <button onclick="showTeam('${team.teamName}')">
-            ${team.teamName} — ${team.totalHR} HR
-          </button>
-        </li>
-      `).join("")}
-    </ol>
+      let html = `
+    <h2>${teamName}</h2>
+    <p><strong>Total Season HR:</strong> ${totalHR}</p>
+    <table style="border-collapse: collapse; min-width: 900px;">
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">Pos</th>
+          <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">Player</th>
+          <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">Matchup</th>
+          <th style="text-align:right; padding:8px 12px; border-bottom:2px solid #ccc;">HR Today</th>
+          <th style="text-align:right; padding:8px 12px; border-bottom:2px solid #ccc;">Season HR</th>
+        </tr>
+      </thead>
+      <tbody>
   `;
-}
 
-showStandings();
-</script>
+      results.forEach((p) => {
+        html += `
+      <tr>
+        <td style="padding:8px 12px; border-bottom:1px solid #eee;">${p.position}</td>
+        <td style="padding:8px 12px; border-bottom:1px solid #eee;">${p.name}</td>
+        <td style="padding:8px 12px; border-bottom:1px solid #eee;">${p.matchup}</td>
+        <td style="text-align:right; padding:8px 12px; border-bottom:1px solid #eee;">${p.todayHR === null ? "N/A" : p.todayHR}</td>
+        <td style="text-align:right; padding:8px 12px; border-bottom:1px solid #eee;">${p.seasonHR === null ? "N/A" : p.seasonHR}</td>
+      </tr>
+    `;
+      });
+
+      html += `
+      </tbody>
+    </table>
+  `;
+
+      display.innerHTML = html;
+      updateTimestamp();
+    }
+    async function showLeagueTable() {
+      const display = document.getElementById("leagueTableDisplay");
+      display.innerHTML = "<h2>League Comparison</h2><p>Loading...</p>";
+
+      const teamNames = Object.keys(teams);
+
+      // Fetch all data
+      const teamResults = {};
+
+      for (const teamName of teamNames) {
+        const players = teams[teamName];
+
+        const results = await Promise.all(
+          players.map(async (player) => {
+            const hr = await getHR(player);
+            return { ...player, hr };
+          })
+        );
+
+        teamResults[teamName] = results;
+      }
+
+      // Build table
+      let html = `
+    <h2>League Comparison</h2>
+    <table style="border-collapse: collapse; font-size: 12px;">
+      <thead>
+        <tr>
+          ${teamNames.map(team => `
+            <th colspan="3" style="border-bottom:2px solid #000; padding:6px 10px;">
+              ${team}
+            </th>
+          `).join("")}
+        </tr>
+        <tr>
+          ${teamNames.map(() => `
+            <th style="padding:4px 8px;">Pos</th>
+            <th style="padding:4px 8px;">Player</th>
+            <th style="padding:4px 8px;">HR</th>
+          `).join("")}
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+      // 9 rows (one per position)
+      for (let i = 0; i < 9; i++) {
+        html += "<tr>";
+
+        for (const team of teamNames) {
+          const p = teamResults[team][i];
+
+          html += `
+        <td style="padding:4px 8px; border-top:1px solid #eee;">${p.position}</td>
+        <td style="padding:4px 8px; border-top:1px solid #eee;">${p.name}</td>
+        <td style="padding:4px 8px; border-top:1px solid #eee; text-align:right;">
+          ${p.hr === null ? "N/A" : p.hr}
+        </td>
+      `;
+        }
+
+        html += "</tr>";
+      }
+
+      // totals row
+      html += "<tr>";
+
+      for (const team of teamNames) {
+        const total = teamResults[team].reduce(
+          (sum, p) => sum + (typeof p.hr === "number" ? p.hr : 0),
+          0
+        );
+
+        html += `
+      <td colspan="2" style="padding:6px 8px; border-top:2px solid #000;"><strong>Total</strong></td>
+      <td style="padding:6px 8px; border-top:2px solid #000; text-align:right;">
+        <strong>${total}</strong>
+      </td>
+    `;
+      }
+
+      html += `
+      </tr>
+      </tbody>
+    </table>
+  `;
+
+      display.innerHTML = html;
+    }
+    async function showStandings() {
+      const display = document.getElementById("standingsDisplay");
+      display.innerHTML = "<h2>Standings</h2><p>Loading standings...</p>";
+
+      try {
+        const standings = await Promise.all(
+          Object.entries(teams).map(async ([teamName, players]) => {
+            const hrs = await Promise.all(
+              players.map(async (player) => {
+                const hr = await getHR(player);
+                return typeof hr === "number" ? hr : 0;
+              })
+            );
+
+            return {
+              teamName,
+              totalHR: hrs.reduce((sum, hr) => sum + hr, 0)
+            };
+          })
+        );
+
+        standings.sort((a, b) => b.totalHR - a.totalHR);
+
+        const cunStandings = standings.filter(team =>
+          conferences.cun.includes(team.teamName)
+        );
+        const felStandings = standings.filter(team =>
+          conferences.fel.includes(team.teamName)
+        );
+
+        const overallTotal = standings.reduce((sum, team) => sum + team.totalHR, 0);
+        const cunTotal = cunStandings.reduce((sum, team) => sum + team.totalHR, 0);
+        const felTotal = felStandings.reduce((sum, team) => sum + team.totalHR, 0);
+
+        function renderTable(title, rows, totalValue) {
+          return `
+        <div style="margin-right:40px;">
+          <h2>${title}</h2>
+          <table style="border-collapse:collapse; min-width:280px;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">Rank</th>
+                <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">Team</th>
+                <th style="text-align:right; padding:8px 12px; border-bottom:2px solid #ccc;">HR</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map((team, index) => `
+                <tr>
+                  <td style="padding:8px 12px; border-bottom:1px solid #eee;">${index + 1}</td>
+                  <td style="padding:8px 12px; border-bottom:1px solid #eee;">
+                    <button onclick="showTeam('${team.teamName}')" style="background:none; border:none; padding:0; margin:0; color:blue; cursor:pointer; font:inherit;">
+                      ${team.teamName}
+                    </button>
+                  </td>
+                  <td style="text-align:right; padding:8px 12px; border-bottom:1px solid #eee;">${team.totalHR}</td>
+                </tr>
+              `).join("")}
+              <tr>
+                <td colspan="2" style="padding:8px 12px; border-top:2px solid #000;"><strong>Total</strong></td>
+                <td style="text-align:right; padding:8px 12px; border-top:2px solid #000;"><strong>${totalValue}</strong></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      `;
+        }
+
+        display.innerHTML = `
+      <div style="display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap;">
+        ${renderTable("Overall Standings", standings, overallTotal)}
+        <div>
+          ${renderTable("CUN Standings", cunStandings, cunTotal)}
+          <div style="height:24px;"></div>
+          ${renderTable("FEL Standings", felStandings, felTotal)}
+        </div>
+      </div>
+    `;
+
+        updateTimestamp();
+      } catch (error) {
+        display.innerHTML = "<h2>Standings</h2><p>Error loading standings: " + error.message + "</p>";
+        console.error(error);
+      }
+    }
+
+    function updateTimestamp() {
+      const el = document.getElementById("lastUpdated");
+      if (!el) return;
+
+      const now = new Date().toLocaleTimeString("en-US", {
+        timeZone: "America/New_York",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+
+      el.innerText = `Last updated: ${now} ET`;
+    }
+
+    showStandings();
+  </script>
 
 </body>
+
 </html>
