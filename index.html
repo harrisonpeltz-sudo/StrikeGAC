@@ -8,6 +8,11 @@
 
 <body>
 
+  <div style="margin-bottom: 20px;">
+    <a href="index.html" style="margin-right: 20px;">Home</a>
+    <a href="league-table.html">League Table</a>
+  </div>
+
   <h1>StrikeGAC</h1>
 
   <hr>
@@ -16,13 +21,10 @@
 
   <div id="lastUpdated" style="margin-top: 6px; font-size: 12px; color: gray;"></div>
 
-  <button onclick="showLeagueTable()">Show Full League Table</button>
-
   <hr>
 
   <div id="teamDisplay">Click a team in the standings.</div>
 
-  <div id="leagueTableDisplay"></div>
   <script>
     const teams = {
       "Gib": [
@@ -357,95 +359,6 @@
 
       display.innerHTML = html;
       updateTimestamp();
-    }
-    async function showLeagueTable() {
-      const display = document.getElementById("leagueTableDisplay");
-      display.innerHTML = "<h2>League Comparison</h2><p>Loading...</p>";
-
-      const teamNames = Object.keys(teams);
-
-      // Fetch all data
-      const teamResults = {};
-
-      for (const teamName of teamNames) {
-        const players = teams[teamName];
-
-        const results = await Promise.all(
-          players.map(async (player) => {
-            const hr = await getHR(player);
-            return { ...player, hr };
-          })
-        );
-
-        teamResults[teamName] = results;
-      }
-
-      // Build table
-      let html = `
-    <h2>League Comparison</h2>
-    <table style="border-collapse: collapse; font-size: 12px;">
-      <thead>
-        <tr>
-          ${teamNames.map(team => `
-            <th colspan="3" style="border-bottom:2px solid #000; padding:6px 10px;">
-              ${team}
-            </th>
-          `).join("")}
-        </tr>
-        <tr>
-          ${teamNames.map(() => `
-            <th style="padding:4px 8px;">Pos</th>
-            <th style="padding:4px 8px;">Player</th>
-            <th style="padding:4px 8px;">HR</th>
-          `).join("")}
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-      // 9 rows (one per position)
-      for (let i = 0; i < 9; i++) {
-        html += "<tr>";
-
-        for (const team of teamNames) {
-          const p = teamResults[team][i];
-
-          html += `
-        <td style="padding:4px 8px; border-top:1px solid #eee;">${p.position}</td>
-        <td style="padding:4px 8px; border-top:1px solid #eee;">${p.name}</td>
-        <td style="padding:4px 8px; border-top:1px solid #eee; text-align:right;">
-          ${p.hr === null ? "N/A" : p.hr}
-        </td>
-      `;
-        }
-
-        html += "</tr>";
-      }
-
-      // totals row
-      html += "<tr>";
-
-      for (const team of teamNames) {
-        const total = teamResults[team].reduce(
-          (sum, p) => sum + (typeof p.hr === "number" ? p.hr : 0),
-          0
-        );
-
-        html += `
-      <td colspan="2" style="padding:6px 8px; border-top:2px solid #000;"><strong>Total</strong></td>
-      <td style="padding:6px 8px; border-top:2px solid #000; text-align:right;">
-        <strong>${total}</strong>
-      </td>
-    `;
-      }
-
-      html += `
-      </tr>
-      </tbody>
-    </table>
-  `;
-
-      display.innerHTML = html;
     }
     async function showStandings() {
       const display = document.getElementById("standingsDisplay");
