@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <title>League Leaders</title>
+  <title>HR Feed</title>
 </head>
 
 <body>
@@ -19,7 +19,7 @@
 
   <hr>
 
-  <div id="leadersDisplay">Loading leaders...</div>
+  <div id="feedDisplay">Loading HR feed...</div>
 
   <script>
     const teams = {
@@ -141,6 +141,9 @@
     };
 
     const idCache = {};
+    const teamIdCache = {};
+    const scheduleCache = {};
+    const playerSeasonHRCache = {};
 
     async function lookupPlayerIdByName(name) {
       if (idCache[name]) return idCache[name];
@@ -154,91 +157,315 @@
       return id;
     }
 
-    async function getHR(player) {
-      let playerId = player.id;
+    async function getResolvedPlayerId(player) {
+      if (player.id) return player.id;
+      return await lookupPlayerIdByName(player.name);
+    }
 
-      if (!playerId) {
-        playerId = await lookupPlayerIdByName(player.name);
-      }
-
+    async function getSeasonHR(player) {
+      const playerId = await getResolvedPlayerId(player);
       if (!playerId) return null;
+
+      if (playerSeasonHRCache[playerId] !== undefined) {
+        return playerSeasonHRCache[playerId];
+      }
 
       const url = `https://statsapi.mlb.com/api/v1/people/${playerId}/stats?stats=season&group=hitting`;
       const response = await fetch(url);
       const data = await response.json();
 
-      return data.stats?.[0]?.splits?.[0]?.stat?.homeRuns ?? 0;
+      const hr = data.stats?.[0]?.splits?.[0]?.stat?.homeRuns ?? 0;
+      playerSeasonHRCache[playerId] = hr;
+      return hr;
     }
 
-    function getConference(teamName) {
-      if (conferences.cun.includes(teamName)) return "CUN";
-      if (conferences.fel.includes(teamName)) return "FEL";
-      return "";
+    async function getCurrentTeamId(playerId) {
+      if (teamIdCache[playerId] !== undefined) return teamIdCache[playerId];
+
+      const response = await fetch(`https://statsapi.mlb.com/api/v1/people/${playerId}?hydrate=currentTeam`);
+      const data = await response.json();
+
+      const teamId = data.people?.[0]?.currentTeam?.id ?? null;
+      teamIdCache[playerId] = teamId;
+      return teamId;
     }
 
-    async function showLeaders() {
-      const display = document.getElementById("leadersDisplay");
-      display.innerHTML = "<h2>League Leaders</h2><p>Loading...</p>";
+    async function getGameInfoForTeamAndDate(teamId, date) {
+      const key = `${teamId}_${date}`;
+      if (scheduleCache[key]) return scheduleCache[key];
 
-      const players = [];
+      const response = await fetch(`https://statsapi.mlb.com/api/v1/schedule?sportId=1&date=${date}&teamId=${teamId}`);
+      const data = await response.json();
 
-      for (const [teamName, roster] of Object.entries(teams)) {
-        for (const player of roster) {
-          const hr = await getHR(player);
+      const game = data.dates?.[0]?.games?.[0] || null;
+      scheduleCache[key] = game;
+      return game;
+    }
 
-          players.push({
-            name: player.name,
-            position: player.position,
-            hr: hr,
-            team: teamName,
-            conference: getConference(teamName)
-          });
+    function formatGameInfo(game, teamId) {
+      if (!game) return "Unknown game";
+
+      const homeTeam = game.teams?.home?.team;
+      const awayTeam = game.teams?.away?.team;
+      const gameDateUTC = game.gameDate;
+
+      const gameTimeET = gameDateUTC
+        ? new Date(gameDateUTC).toLocaleTimeString("en-US", {
+          timeZone: "America/New_York",
+          hour: "numeric",
+          minute: "2-digit"
+        })
+        : "";
+
+      if (teamId === homeTeam?.id) {
+        return `vs ${awayTeam?.abbreviation || awayTeam?.name} — ${gameTimeET} ET`;
+      } else if (teamId === awayTeam?.id) {
+        return `@ ${homeTeam?.abbreviation || homeTeam?.name} — ${gameTimeET} ET`;
+      }
+
+      return gameTimeET ? `Game at ${gameTimeET} ET` : "Unknown game";
+    }
+
+    function getTeamNameForPlayer(playerName) {
+      for (const [teamName, players] of Object.entries(teams)) {
+        if (players.some(p => p.name === playerName)) {
+          return teamName;
+        }
+      }
+      return null;
+    }
+
+    function getConferenceForTeam(teamName) {
+      if (conferences.cun.includes(teamName)) return "cun";
+      if (conferences.fel.includes(teamName)) return "fel";
+      return null;
+    }
+
+    async function buildTeamTotals() {
+      const totals = {};
+
+      for (const [teamName, players] of Object.entries(teams)) {
+        const hrs = await Promise.all(players.map(player => getSeasonHR(player)));
+        totals[teamName] = hrs.reduce((sum, hr) => sum + (typeof hr === "number" ? hr : 0), 0);
+      }
+
+      return totals;
+    }
+
+    function formatFeedDate(dateStr) {
+      const d = new Date(dateStr + "T12:00:00");
+      return d.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+        year: "numeric"
+      });
+    }
+
+    async function showHRFeed() {
+      const display = document.getElementById("feedDisplay");
+      display.innerHTML = "<h2>HR Feed</h2><p>Loading...</p>";
+
+      const teamTotals = await buildTeamTotals();
+
+      const today = new Date();
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(today.getDate() - 7);
+
+      function toYYYYMMDD(date) {
+        return date.toISOString().split("T")[0];
+      }
+
+      const startDate = toYYYYMMDD(sevenDaysAgo);
+      const endDate = toYYYYMMDD(today);
+
+      const rawEvents = [];
+      const currentPlayerTotals = {};
+
+      for (const players of Object.values(teams)) {
+        for (const player of players) {
+          const playerId = await getResolvedPlayerId(player);
+          if (!playerId) continue;
+
+          const currentSeasonHR = await getSeasonHR(player);
+          currentPlayerTotals[player.name] =
+            typeof currentSeasonHR === "number" ? currentSeasonHR : 0;
+
+          const response = await fetch(
+            `https://statsapi.mlb.com/api/v1/people/${playerId}/stats?stats=gameLog&group=hitting&season=2026`
+          );
+          const data = await response.json();
+
+          const splits = data.stats?.[0]?.splits || [];
+          const recentSplits = splits.filter(
+            split => split.date >= startDate && split.date <= endDate
+          );
+          const hrGames = recentSplits.filter(
+            split => (split.stat?.homeRuns || 0) > 0
+          );
+
+          if (hrGames.length === 0) continue;
+
+          const strikegacTeam = getTeamNameForPlayer(player.name);
+          const conference = getConferenceForTeam(strikegacTeam);
+          const playerTeamId = await getCurrentTeamId(playerId);
+
+          for (const split of hrGames) {
+            const date = split.date;
+            const hrsInGame = split.stat?.homeRuns || 0;
+
+            let opponentText = "Unknown opponent";
+            let occurredAt = `${date}T12:00:00Z`;
+
+            try {
+              const game = playerTeamId
+                ? await getGameInfoForTeamAndDate(playerTeamId, date)
+                : null;
+
+              if (game) {
+                occurredAt = game.gameDate || occurredAt;
+
+                const homeTeam = game.teams?.home?.team;
+                const awayTeam = game.teams?.away?.team;
+
+                if (playerTeamId === homeTeam?.id) {
+                  opponentText = `vs. ${awayTeam?.abbreviation || awayTeam?.name}`;
+                } else if (playerTeamId === awayTeam?.id) {
+                  opponentText = `at ${homeTeam?.abbreviation || homeTeam?.name}`;
+                }
+              }
+            } catch {
+              opponentText = "Unknown opponent";
+            }
+
+            for (let i = 0; i < hrsInGame; i++) {
+              rawEvents.push({
+                date,
+                occurredAt,
+                playerName: player.name,
+                opponentText,
+                strikegacTeam,
+                conference
+              });
+            }
+          }
         }
       }
 
-      players.sort((a, b) => {
-        if ((b.hr ?? -1) !== (a.hr ?? -1)) return (b.hr ?? -1) - (a.hr ?? -1);
-        return a.name.localeCompare(b.name);
+      // sort oldest -> newest so cumulative math works
+      rawEvents.sort((a, b) => {
+        if (a.occurredAt !== b.occurredAt) {
+          return new Date(a.occurredAt) - new Date(b.occurredAt);
+        }
+        return a.playerName.localeCompare(b.playerName);
       });
 
-      let html = `
-        <h2>League Leaders</h2>
-        <table style="border-collapse: collapse; min-width: 700px;">
-          <thead>
-            <tr>
-              <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">#</th>
-              <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">Player</th>
-              <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">Pos</th>
-              <th style="text-align:right; padding:8px 12px; border-bottom:2px solid #ccc;">HR</th>
-              <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">Team</th>
-              <th style="text-align:left; padding:8px 12px; border-bottom:2px solid #ccc;">Conference</th>
-            </tr>
-          </thead>
-          <tbody>
-      `;
+      // count HR shown in this window
+      const windowTeamHRs = {};
+      const windowConferenceHRs = { cun: 0, fel: 0 };
+      const windowPlayerHRs = {};
 
-      players.forEach((player, index) => {
+      for (const event of rawEvents) {
+        if (event.strikegacTeam) {
+          windowTeamHRs[event.strikegacTeam] =
+            (windowTeamHRs[event.strikegacTeam] || 0) + 1;
+        }
+
+        if (event.conference) {
+          windowConferenceHRs[event.conference] =
+            (windowConferenceHRs[event.conference] || 0) + 1;
+        }
+
+        windowPlayerHRs[event.playerName] =
+          (windowPlayerHRs[event.playerName] || 0) + 1;
+      }
+
+      // baselines before the displayed window starts
+      const runningTeamTotals = {};
+      for (const teamName of Object.keys(teams)) {
+        runningTeamTotals[teamName] =
+          (teamTotals[teamName] || 0) - (windowTeamHRs[teamName] || 0);
+      }
+
+      const currentConferenceTotals = {
+        cun: conferences.cun.reduce((sum, team) => sum + (teamTotals[team] || 0), 0),
+        fel: conferences.fel.reduce((sum, team) => sum + (teamTotals[team] || 0), 0)
+      };
+
+      const runningConferenceTotals = {
+        cun: currentConferenceTotals.cun - windowConferenceHRs.cun,
+        fel: currentConferenceTotals.fel - windowConferenceHRs.fel
+      };
+
+      const runningPlayerTotals = {};
+      for (const playerName of Object.keys(currentPlayerTotals)) {
+        runningPlayerTotals[playerName] =
+          currentPlayerTotals[playerName] - (windowPlayerHRs[playerName] || 0);
+      }
+
+      // assign resulting totals AFTER each HR
+      const annotatedEvents = rawEvents.map(event => {
+        runningPlayerTotals[event.playerName] =
+          (runningPlayerTotals[event.playerName] || 0) + 1;
+
+        if (event.strikegacTeam) {
+          runningTeamTotals[event.strikegacTeam] =
+            (runningTeamTotals[event.strikegacTeam] || 0) + 1;
+        }
+
+        if (event.conference) {
+          runningConferenceTotals[event.conference] =
+            (runningConferenceTotals[event.conference] || 0) + 1;
+        }
+
+        return {
+          ...event,
+          resultingPlayerTotal: runningPlayerTotals[event.playerName],
+          resultingTeamTotal: event.strikegacTeam
+            ? runningTeamTotals[event.strikegacTeam]
+            : null,
+          resultingConferenceTotal: event.conference
+            ? runningConferenceTotals[event.conference]
+            : null
+        };
+      });
+
+      // newest first for display
+      annotatedEvents.sort((a, b) => {
+        if (a.occurredAt !== b.occurredAt) {
+          return new Date(b.occurredAt) - new Date(a.occurredAt);
+        }
+        return b.playerName.localeCompare(a.playerName);
+      });
+
+      let html = "<h2>HR Feed</h2>";
+      let currentDate = "";
+
+      for (const event of annotatedEvents) {
+        if (event.date !== currentDate) {
+          currentDate = event.date;
+          html += `
+        <div style="margin-top:24px; margin-bottom:12px; font-weight:bold; font-size:18px;">
+          ${formatFeedDate(currentDate)}
+        </div>
+      `;
+        }
+
         html += `
-          <tr>
-            <td style="padding:8px 12px; border-bottom:1px solid #eee;">${index + 1}</td>
-            <td style="padding:8px 12px; border-bottom:1px solid #eee;">${player.name}</td>
-            <td style="padding:8px 12px; border-bottom:1px solid #eee;">${player.position}</td>
-            <td style="text-align:right; padding:8px 12px; border-bottom:1px solid #eee;">${player.hr ?? "N/A"}</td>
-            <td style="padding:8px 12px; border-bottom:1px solid #eee;">${player.team}</td>
-            <td style="padding:8px 12px; border-bottom:1px solid #eee;">${player.conference}</td>
-          </tr>
-        `;
-      });
+      <div style="padding:6px 0;">
+        ${event.playerName} - HR (${event.resultingPlayerTotal}), ${event.opponentText}, ${event.strikegacTeam} (${event.resultingTeamTotal}), ${(event.conference || "").toUpperCase()} (${event.resultingConferenceTotal})
+      </div>
+    `;
+      }
 
-      html += `
-          </tbody>
-        </table>
-      `;
+      if (annotatedEvents.length === 0) {
+        html += "<p>No home runs in the last 7 days.</p>";
+      }
 
       display.innerHTML = html;
     }
 
-    showLeaders();
+    showHRFeed();
   </script>
 
 </body>
